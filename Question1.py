@@ -35,3 +35,44 @@ class FaceDetector(ImageProcessor):
         cv2.imwrite(output_path, image)
         return output_path
 
+def create_rounded_button(master, text, command):
+    button_frame = ttk.Frame(master, relief='solid')
+    button_frame.pack(pady=3)
+
+    button = tk.Button(button_frame, text=text, command=command, width=15, relief='flat', fg='black', font=("Arial", 14))
+    button.pack(ipadx=10, ipady=10, fill='both')
+
+    button_frame.bind("<Enter>", lambda e: button_frame.configure(relief='groove'))
+    button_frame.bind("<Leave>", lambda e: button_frame.configure(relief='solid'))
+
+    return button
+
+# Encapsulation - logic is protected and simplified by keeping attributes private to the class.
+class FaceDetectionApp:
+    '''Tkinter GUI Application'''
+
+    def __init__(self, master):
+        self.master = master
+        master.title("Face Detection App")
+        master.minsize(500, 300)
+
+        self.title_label = tk.Label(master, text="Face Detection Application", font=("Arial", 20))
+        self.title_label.pack(pady=10)
+
+        self.description_label = tk.Label(master, text="Detect facial objects in any image!", font=("Arial", 14))
+        self.description_label.pack(pady=0)
+
+        self.label = tk.Label(master, text="Upload an Image:")
+        self.label.pack(pady=(20, 5))
+
+        self.upload_button = create_rounded_button(master, "Upload Image", self.upload_image)
+
+        self.upload_desc = tk.Label(master, text="Click to select an image from your files.", font=("Arial", 10))
+        self.upload_desc.pack()
+
+        self.process_button = create_rounded_button(master, "Detect Faces", self.detect_faces)
+
+        self.process_desc = tk.Label(master, text="Click to detect faces in the uploaded image.", font=("Arial", 10))
+        self.process_desc.pack()
+
+        self.image_path = ""
