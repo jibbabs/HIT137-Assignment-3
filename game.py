@@ -17,23 +17,29 @@ from pygame.locals import *
 
 
 pygame.init()
-# Import pygame.locals for easier access to key coordinates
-# Updated to conform to flake8 and black standards
-# from pygame.locals import *
 
+pygame.mixer.init()  
+
+#Soundtrack by Evgeny Bardyuzha from Pixabay
+soundtrack = pygame.mixer.music.load("password-infinity-123276.mp3")
+
+pygame.mixer.music.play(loops=-1)
+pygame.mixer.music.set_volume(0.2)
+
+#Sound Effect by mrfriends from Pixabay
+gunshot = pygame.mixer.Sound("pistol-shot-233473.mp3")
+gunshot.set_volume(0.2)
 # Define constants for the screen width and height
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 x = 0
 y = SCREEN_HEIGHT - 25
-
+startPos = (110,480)
 # Create the screen object
 # The size is determined by the constant SCREEN_WIDTH and SCREEN_HEIGHT
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("JOHN JONE: CITY DEFENDER")
-
-char = pygame.image.load('sprites\standing.png')
-animationState = pygame.image.load("sprites\standing.png")
+highScore = 0
 
 font = pygame.font.Font(None, 36)
 SCROLL_THRESH = 100
@@ -58,7 +64,7 @@ clock = pygame.time.Clock()
 # Define the Player object extending pygame.sprite.Sprite
 # Instead of a surface, we use an image for a better looking sprite
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y , width, height):
+    def __init__(self, x, y , width, height, ):
         super(Player, self).__init__()
         self.x = x
         self.y = y
@@ -72,9 +78,9 @@ class Player(pygame.sprite.Sprite):
         self.walkCount = 0
         self.standing = True
         self.shooting = False
-        self.max_health = 30
+        self.max_health = 20
         self.current_health = self.max_health
-        self.max_lives = 5
+        self.max_lives = 2
         self.current_lives = self.max_lives
         self.bar_width = 200
         self.bar_height = 20
@@ -105,7 +111,11 @@ class Player(pygame.sprite.Sprite):
         global uppercollision
         global leftcollision
         global rightcollision
+        global highScore
         self.bulletColour = collectible.bulletColours[self.gunLvl]
+        
+        if self.score > highScore:
+            highScore = self.score
         
         if pressed_keys[K_LEFT] and self.x > self.velocity and self.playerDead != True:
             self.x -= self.velocity
@@ -148,6 +158,8 @@ class Player(pygame.sprite.Sprite):
                     if len(bullets) < self.bulletLim:
                         bullets.append(projectile(round(self.x + 65 *facing), round (self.y + 19 ), self.bulletSize, self.bulletColour, facing, self.bulletSpeed))
                         self.shotTimer = self.shotSpeed
+                        gunshot.play()
+                       
         else:
             self.shotTimer -= 1    
             bulletCount = 1
@@ -241,12 +253,19 @@ class Player(pygame.sprite.Sprite):
         screen.blit(score_text, (SCREEN_WIDTH - 200, 80))   
         
     def hit(self):
-        self.current_health -= 5
-        if self.current_health <= 0:
-            if self.current_lives != 1:
-                self.current_lives -= 1
-                self.x, self.y = startPos
+        if self.current_health > 0:
+            self.current_health -= 5
+            
+        if self.current_health <= 0 and self.current_lives > 0:
+            self.current_lives -= 1
+            self.x, self.y = startPos
+            self.current_health = self.max_health
+                
+          
+                
+          
     
+            
     def die(self):
         global menu
         global gameRun
@@ -315,7 +334,8 @@ class collectible (pygame.sprite.Sprite):
     def update(self):
         
         #Move with level
-        #pygame.draw.rect(screen, (0,100,0),self.rect,1)
+        
+        
         if currentLevel.bgX < 0 and currentLevel.bgX > -currentLevel.current_Level_Width:
             if player.x > SCROLL_THRESH + player.velocity:
                 self.rect.x += screen_scroll - (screen_scroll//2)
@@ -325,17 +345,20 @@ class collectible (pygame.sprite.Sprite):
         if pygame.sprite.collide_rect(self, player):
             if self.item_type == 'Medpack':
                 if player.current_health < player.max_health:
-                    player.current_health += 20
+                    player.current_health += 5
+                if player.current_health > player.max_health:
+                    player.current_health = player.max_health
             self.kill()        
           
         if pygame.sprite.collide_rect(self, player):
             if self.item_type == 'Gun_upgrade':
-                player.gunLvl += 1
+                if player.gunLvl < 4:
+                    player.gunLvl += 1
                 player.bulletLim += 1
                 player.bulletSpeed += 1
                 player.shotSpeed -= 2
                 player.bulletSize += 1
-                player.bulletDmg += 2
+                player.bulletDmg += 1
                 
             self.kill()        
                 
@@ -392,56 +415,15 @@ class obstacle (pygame.sprite.Sprite):
         self.behind = True
         
     def update(self):
-        global undercollision
-        global uppercollision
-        global leftcollision
-        global rightcollision
-        #Move with level
-        #pygame.draw.rect(screen, (0,100,0),self.rect,1)
+      
         
+        #Obstacles move with level
         if currentLevel.bgX < 0 and currentLevel.bgX > -currentLevel.current_Level_Width:
             if player.x > SCROLL_THRESH + player.velocity:
                 self.rect.x += screen_scroll/2
                 self.x += screen_scroll /2
          
                     
-        #Checks collision with the obstacle, is so, disables movement in that direction.
-        if pygame.sprite.collide_rect(self, player):  
-            if self.obs_type == 'Rubbish1':  
-                pass
-        
-       
-            
-                #Collision code for obstacles, not finished
-        """
-        if self.rect[0] < player.rect[0] and self.rect[0] + self.rect[2] > player.rect[0]:
-            if self.rect[1] < player.rect[1] and player.rect[1] > self.rect[1] + self.rect[3]/2 :
-                
-                    undercollision = True
-                    print("Under collision") #Good
-            if self.rect[1] > player.rect[1] + player.rect[3] and player.rect[1] < self.rect[1] + self.rect[3]/2 :
-                if (leftcollision or rightcollision) != True: 
-                    uppercollision = True
-                    print("Upper collision")    
-                    
-        if self.rect[1] < player.rect[1] and self.rect[1] + self.rect[3] > player.rect[1]:   
-            if self.rect[0] < player.rect[0] + player.rect[2] and player.rect[0] + player.rect[2] < self.rect[0] + self.rect[2]/2:
-                if (undercollision or uppercollision) != True: 
-                    leftcollision = True
-                    print("left collision")  
-            if self.rect[0] + self.rect[2] > player.rect[0] and player.rect[0] > self.rect[0] + self.rect[2]/2 :
-                if (undercollision or uppercollision) != True: 
-                    rightcollision = True
-                    print("Right collision")  """
-                            
-                
-                      
-        #Check if player picks up collectible
-        if pygame.sprite.collide_rect(self, player):
-            if self.obs_type == 'Burnt_car':
-                pass
-
-
 class enemy(pygame.sprite.Sprite):
     
     def __init__(self,enemy_type, x, y, xadj, yadj, width, height, start, end):
@@ -458,20 +440,23 @@ class enemy(pygame.sprite.Sprite):
         self.end = end
         self.walkCount = 0
         self.path = [self.start, self.end]
+        self.ebullets = []
         self.hitbox = (self.x - 10 ,self.y - 3,self.width,self.height)
         self.enemy_type = enemy_type
         self.rect = self.hitbox
-        self.timer = 10
+        self.timerMax = 20
+        self.timer = self.timerMax
         self.spriteCollision = False
         self.aggro = False
-        self.enemy_type = enemy_type
         self.left = False
         self.right = False
+        self.enemySel = self.enemy_type
         if self.enemy_type == 'enemyA':
-            enemy.enemyA(self)
+            self.enemyA()
         if self.enemy_type == 'enemyB':
-            enemy.enemyB(self)
-        self.ebullets = []
+            self.enemyB()
+        if self.enemy_type == 'enemyBoss':
+            self.enemyBoss() 
         
     def enemyA(self):
         self.velocity = 1
@@ -482,7 +467,7 @@ class enemy(pygame.sprite.Sprite):
         self.facing = 1
         self.bulletLim = 2
         self.bulletColour = (234,237,211)
-        self.range = 300
+        self.range = 350
         self.bulletSpeed = 4
         self.health = 10
         self.currentHealth = self.health
@@ -499,7 +484,7 @@ class enemy(pygame.sprite.Sprite):
         self.shotTimer = self.shotPause
         
     def enemyB(self):
-        self.velocity = 4
+        self.velocity = 3
         self.walkRight = [pygame.image.load('sprites\enemyBWR1.png'), pygame.image.load('sprites\enemyBWR2.png'), pygame.image.load('sprites\enemyBWR3.png'), pygame.image.load('sprites\enemyBWR4.png'), pygame.image.load('sprites\enemyBWR5.png'), pygame.image.load('sprites\enemyBWR6.png')]
         self.walkLeft = [pygame.image.load('sprites\enemyBWL1.png'), pygame.image.load('sprites\enemyBWL2.png'), pygame.image.load('sprites\enemyBWL3.png'), pygame.image.load('sprites\enemyBWL4.png'), pygame.image.load('sprites\enemyBWL5.png'), pygame.image.load('sprites\enemyBWL6.png')]
         self.shootingR = pygame.image.load('sprites\shootingB.png')
@@ -507,9 +492,9 @@ class enemy(pygame.sprite.Sprite):
         self.facing = 1
         self.bulletLim = 2
         self.bulletColour = (234,237,211)
-        self.range = 300
+        self.range = 500
         self.bulletSpeed = 4
-        self.health = 10
+        self.health = 6
         self.currentHealth = self.health
         self.bar_width = 50
         self.bar_height = 3
@@ -519,13 +504,38 @@ class enemy(pygame.sprite.Sprite):
         self.bullety = 18
         self.followR = False
         self.followL = False
-        
+        self.timerMax = 50
+        self.timer = self.timerMax
         self.shotPause = 20
         self.shotTimer = self.shotPause
         
+    def enemyBoss(self):
+        self.velocity = 1
+        self.walkLeft = [pygame.image.load('sprites\ebossLW.png'), pygame.image.load('sprites\ebossLW2.png'), pygame.image.load('sprites\ebossLW.png'),pygame.image.load('sprites\ebossLW2.png'),pygame.image.load('sprites\ebossLW.png'),pygame.image.load('sprites\ebossLW2.png'), ]
+        self.walkRight = [pygame.image.load('sprites\ebossLW.png'), pygame.image.load('sprites\ebossLW2.png'), pygame.image.load('sprites\ebossLW.png'),pygame.image.load('sprites\ebossLW2.png'),pygame.image.load('sprites\ebossLW.png'),pygame.image.load('sprites\ebossLW2.png'), ]
+        self.shootingR = pygame.image.load('sprites\ebossshooting.png')
+        self.shootingL = pygame.image.load('sprites\ebossLW.png')
+        self.facing = 1
+        self.bulletLim = 6
+        self.bulletColour = (9,242,194)
+        self.range = 600
+        self.bulletSpeed = 6
+        self.health = 200
+        self.currentHealth = self.health
+        self.bar_width = 120
+        self.bar_height = 10
+        self.healthx = 5
+        self.healthy = -25
+        self.bulletx = 20
+        self.bullety = 18
+        self.followR = False
+        self.followL = False
+        
+        self.shotPause = 20
+        self.shotTimer = self.shotPause   
               
     def update(self, screen):
-        
+        #Pauses enemy movement if shooting
         if self.shotTimer < self.shotPause:
             if self.followR == True:
                 screen.blit(self.shootingR, (self.x, self.y))
@@ -533,6 +543,7 @@ class enemy(pygame.sprite.Sprite):
             else:
                 screen.blit(self.shootingL, (self.x, self.y))
                 
+        #Enemy following player animation
         else:     
             if self.followR == True or self.followL == True:
                 if self.followR == True: 
@@ -553,47 +564,51 @@ class enemy(pygame.sprite.Sprite):
                 if self.velocity < 0 :            
                     screen.blit(self.walkLeft[self.walkCount//3], (self.x, self.y))
                     self.walkCount += 1
-                    
-        
-      
             
         if self.walkCount >= 18:
             self.walkCount = 0   
-        #Level 1 A Type enemy shooting   
-        
+              
+       
         if player.x > self.x:
                 self.facing = 1
         else:
             self.facing = -1
-            
+        
+        #Enemy shooting   
         self.bulletx = self.bulletx * self.facing
         if self.shotTimer == self.shotPause:
             if player.x < self.x + self.range and player.x > self.x - self.range:
-                if len(self.ebullets) < self.bulletLim:
-                    self.ebullets.append(projectile(round((self.x + (self.width/2)) + self.bulletx), round (self.y + self.bullety), 4, self.bulletColour, self.facing, self.bulletSpeed))
-                   
-                    self.shotTimer -= 1
+                if self.enemy_type == 'enemyA':
+                    if len(self.ebullets) < self.bulletLim:
+                        self.ebullets.append(projectile(round((self.x + 30 * self.facing ) + self.bulletx), round (self.y + self.bullety), 4, self.bulletColour, self.facing, self.bulletSpeed))
+                        self.shotTimer -= 1
+                       
+                if self.enemy_type == 'enemyBoss':
+                    if len(self.ebullets) < self.bulletLim: 
+                        self.ebullets.append(projectile(round((self.x + (self.width/2)) ), round (self.y + 30), 4, self.bulletColour, self.facing, self.bulletSpeed))
+                        self.ebullets.append(projectile(round((self.x + (self.width/2)) -30), round (self.y + 30), 4, self.bulletColour, self.facing, self.bulletSpeed))
+                        self.shotTimer -= 1
         else:
             self.shotTimer -= 1
             
         if self.shotTimer <= 0:
             self.shotTimer = self.shotPause
         
-        # Draw enemy health bar background
+        #Draw enemy health bar background
         pygame.draw.rect(screen, (100,0,0), (self.x + self.healthx, self.y + self.healthy, self.bar_width, self.bar_height))
 
-        # Calculate the width of the current health
+        #Calculate the width of the current health
         health_ratio = self.currentHealth / self.health
         current_bar_width = self.bar_width * health_ratio
         
-        # Draw current health
+        #Draw current enemy health
         pygame.draw.rect(screen, (0,128,0), (self.x + self.healthx, self.y + self.healthy, current_bar_width, self.bar_height))
          
             
     def move(self):
         
         
-        #Detects if player is within enemy range and begins following.
+         #Enemy movement to follow player if player in range
         if self.shotTimer == self.shotPause:
             if player.x < self.x + self.range and player.x > self.x - self.range:  
                 self.distX = self.x - player.x 
@@ -677,29 +692,24 @@ class enemy(pygame.sprite.Sprite):
                 pass
                 
                 #Collision detection with player
-                self.hitbox = (self.x + self.xadj,self.y + self.yadj,self.width,self.height)
-                #pygame.draw.rect(screen, (255,0,0),self.hitbox, 2)
                 
-                if self.hitbox[1] - self.height < player.rect[1] + player.rect[3] and self.hitbox[1] + self.height > player.rect[1]:
-                    if self.hitbox[0] + self.width > player.rect[0] and self.hitbox[0] - self.width < player.rect[0] + player.rect[2]:
-                        self.timer -= 1
-                        
-                        if self.timer <= 0:
-                            player.hit()
-                            self.timer = 10
-                if self.walkCount >= 18:
-                        self.walkCount = 0
         else:
             self.x += screen_scroll
-                            
-        #Level 1 b Type enemy Movement
-        if self.enemy_type == 'Level1b':
             
-            
-            pass
-    def ai(self):
-        pass
-           
+        self.hitbox = (self.x + self.xadj,self.y + self.yadj,self.width,self.height)
+        print(self.timer)
+        
+        if self.hitbox[1] - self.height < player.rect[1] + player.rect[3] and self.hitbox[1] + self.height > player.rect[1]:
+            if self.hitbox[0] + self.width > player.rect[0] and self.hitbox[0] - self.width < player.rect[0] + player.rect[2]:
+                self.timer -= 1
+                if self.enemy_type == 'enemyB':
+                    self.shotTimer = self.shotPause
+                if self.timer <= 0:
+                    player.hit()
+                    self.timer = self.timerMax
+        if self.walkCount >= 18:
+                self.walkCount = 0                
+
     def hit(self):
         print("Hit!")
         self.currentHealth -= player.bulletDmg
@@ -709,8 +719,12 @@ class enemy(pygame.sprite.Sprite):
                 player.score += 10
                 
             if self.enemy_type == 'enemyB':
+                player.score += 25
                 item_drop = collectible('Gun_upgrade', self.x + 50, self.y + 30)
                 collectibles_group.add(item_drop)
+                
+            if self.enemy_type == 'enemyBoss':
+                player.score += 1000
             self.kill()
             
             
@@ -722,7 +736,7 @@ class enemy(pygame.sprite.Sprite):
 #move_up_sound.set_volume(0.5)
 #move_down_sound.set_volume(0.5)
 #collision_sound.set_volume(0.5)
-startPos = (200,450)
+
 
 enemy_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
@@ -775,12 +789,13 @@ class levelLoad():
         streetLamp3 = obstacle('streetlamp', 1600, SCREEN_HEIGHT - 358)
         streetLamp4 = obstacle('streetlamp', 2200, SCREEN_HEIGHT - 358)
         
-        robotEnemy1 = enemy('enemyA', 1200, SCREEN_HEIGHT - 150, 0, 10, 30, 40, 1000, 1300) 
+        robotEnemy1 = enemy('enemyA', 1600, SCREEN_HEIGHT - 150, 0, 10, 30, 40, 1600, 1800) 
         robotEnemy2 = enemy('enemyA', 2000, SCREEN_HEIGHT - 90, 0, 10, 30, 40, 1500, 2100)
         robotEnemy3 = enemy('enemyB', 2050, SCREEN_HEIGHT - 150, 0, 10, 30, 40, 1500, 2100)  
-        robotEnemy4 = enemy('enemyA', 2800, SCREEN_HEIGHT - 150, 0, 10, 30, 40, 1500, 2100)  
+        robotEnemy4 = enemy('enemyA', 2200, SCREEN_HEIGHT - 150, 0, 10, 30, 40, 1500, 2100)  
+        robotEnemy5 = enemy('enemyB', 1200, SCREEN_HEIGHT - 150, 0, 10, 30, 40, 1200, 1500) 
         
-        self.enemyList = [robotEnemy1,robotEnemy2,robotEnemy3, robotEnemy4]   
+        self.enemyList = [robotEnemy1,robotEnemy2,robotEnemy3, robotEnemy4, robotEnemy5]   
         
         for enemies in self.enemyList:
             enemy_group.add(enemies)
@@ -825,8 +840,10 @@ class levelLoad():
         robotEnemy4 = enemy('enemyA', 1900, SCREEN_HEIGHT - 140, 0, 10, 30, 40, 1240, 2000)  
         robotEnemy5 = enemy('enemyB', 2050, SCREEN_HEIGHT - 100, 0, 10, 30, 40, 1360, 2000)  
         robotEnemy6 = enemy('enemyA', 1800, SCREEN_HEIGHT - 170, 0, 10, 30, 40, 1120, 2000)  
+        robotEnemy7 = enemy('enemyA', 2100, SCREEN_HEIGHT - 100, 0, 10, 30, 40, 2100, 2200)  
+        robotEnemy8 = enemy('enemyA', 2140, SCREEN_HEIGHT - 170, 0, 10, 30, 40, 2120, 2240)  
         
-        self.enemyList = [robotEnemy1,robotEnemy2,robotEnemy3, robotEnemy4,robotEnemy5,robotEnemy6]  
+        self.enemyList = [robotEnemy1,robotEnemy2,robotEnemy3, robotEnemy4,robotEnemy5,robotEnemy6, robotEnemy7, robotEnemy8]  
         
         for enemies in self.enemyList:
             enemy_group.add(enemies)
@@ -846,10 +863,10 @@ class levelLoad():
         self.groundX = 0
         self.groundX2 =  self.ground.get_width()
         
-        item_box = collectible('Gun_upgrade', 600, SCREEN_HEIGHT - 130)
-        collectibles_group.add(item_box)
-        item_box2 = collectible('Medpack', 700, SCREEN_HEIGHT - 60)
-        collectibles_group.add(item_box2)
+        
+        item_box1 = collectible('Medpack', 425, SCREEN_HEIGHT - 120)
+        item_box2 = collectible('Medpack', 450, SCREEN_HEIGHT - 50)
+        collectibles_group.add(item_box1, item_box2)
 
         millitary_v = obstacle('Millitary vehicle', 0, SCREEN_HEIGHT - 200)
         tank = obstacle('Tank', 2150, SCREEN_HEIGHT - 190)
@@ -859,24 +876,23 @@ class levelLoad():
         rubbish3 = obstacle('Rubbish3', 1940, SCREEN_HEIGHT - 130)
         rubbish4 = obstacle('Rubbish4', 1700, SCREEN_HEIGHT - 70)
         
-        text1 = obstacle('Level1text', 300, 350)
-        text2 = obstacle('Level1text2', 1100, 350)
-        text3 = obstacle('Level1text3', 1800, 350)
         
         streetLamp1 = obstacle('streetlamp', 400, SCREEN_HEIGHT - 375)
         streetLamp2 = obstacle('streetlamp', 800, SCREEN_HEIGHT - 375)
         streetLamp3 = obstacle('streetlamp', 1200, SCREEN_HEIGHT - 375)
         streetLamp4 = obstacle('streetlamp', 1600, SCREEN_HEIGHT - 375)
         
-        #robotEnemy1 = enemy('enemyA', 1300, SCREEN_HEIGHT - 150, 0, 20, 30, 20, 1000, 1400) 
-        robotEnemy2 = enemy('enemyA', 600, SCREEN_HEIGHT - 150, 0, 20, 30, 20, 600, 800) 
         
-        self.enemyList = [ robotEnemy2]   
+        robotBoss = enemy('enemyBoss', 1700, SCREEN_HEIGHT - 150, 0, 0, 130, 120, 600, 800) 
+        robotEnemy1 = enemy('enemyB', 1600, SCREEN_HEIGHT - 120, 0, 10, 30, 40, 1350, 1700)
+        robotEnemy2 = enemy('enemyB', 1650, SCREEN_HEIGHT - 180, 0, 10, 30, 40, 1350, 1700) 
+        
+        self.enemyList = [robotEnemy1, robotEnemy2,  robotBoss]   
         
         for enemies in self.enemyList:
             enemy_group.add(enemies)
          
-        self.allLevelObjects = [rubbish1, rubbish2, rubbish3, rubbish4, streetLamp1, streetLamp2, streetLamp3, streetLamp4, text1, text2, text3, millitary_v, tank]
+        self.allLevelObjects = [rubbish1, rubbish2, rubbish3, rubbish4, streetLamp1, streetLamp2, streetLamp3, streetLamp4, millitary_v, tank]
         for objects in self.allLevelObjects:
             obstacles_group.add(objects)
      
@@ -887,7 +903,6 @@ class levelLoad():
     def update(self, screen):
         
         if self.bgX <= 0 and self.bgX >= -self.current_Level_Width and player.x >= SCROLL_THRESH + player.velocity:
-            
             self.bgX += screen_scroll
             self.bgX2 = self.bgX + self.bg.get_width()
             self.bgX3 = self.bgX2 + self.bg.get_width()
@@ -916,37 +931,28 @@ class levelLoad():
             
         if self.groundX <= -self.current_Level_Width:
                 self.groundX = -self.current_Level_Width
-        print(screen_scroll)    
-             
-        
-            
-                
-                
-
-    #robotEnemy2 = enemy('Level1a', 1500, SCREEN_HEIGHT - 200, 30, 20, 600, 700, 0) 
-    #robotEnemy3 = enemy('Level1a', 1800, SCREEN_HEIGHT - 100, 30, 20, 1500, 1800, 2) 
-    #robotEnemy4 = enemy('Level1a', 1200, SCREEN_HEIGHT - 200, 30, 20, 1000, 1100, 2) 
-    #enemy_group.add(robotEnemy1)
-    #enemy_group.add(robotEnemy2)
-    #enemy_group.add(robotEnemy3)
-    #enemy_group.add(robotEnemy4)
-     
+  
     pressed_keys = pygame.key.get_pressed()
     pressed_mouse = pygame.mouse.get_pressed()
     cursor_pos = pygame.mouse.get_pos()    
 
 currentLevel = levelLoad(0)  
 currentLevel.setLevel()  
-    
+
+
 
 def drawGame():
-    #Checks for player collision with enemies and draws enemies above or below player based on hitbox Y coordinate.
+    
     
     currentLevel.update(screen)
     obstacles_group.draw(screen)
     for obs in obstacles_group:
         obs.update()
+    
+    #Checks for enemies
     if len(enemy_group) > 0:   
+        
+        #Checks for player collision with enemies and draws enemies above or below player based on hitbox Y coordinate.
         for enemy in enemy_group:
             if enemy.hitbox[1] + enemy.height +40 < player.rect[1] + player.rect[3] and enemy.hitbox[1] + enemy.height + 40 > player.rect[1]:      
                 if enemy.hitbox[0] + enemy.width > player.rect[0] and enemy.hitbox[0] - enemy.width < player.rect[0] + player.rect[2]:
@@ -954,12 +960,13 @@ def drawGame():
                     enemy.spriteCollision = True   
                     enemy.update(screen)
                     enemy.move()
-                    #print (enemy.spriteCollision)  
+                      
                 else:
                     enemy.spriteCollision = False
                     
             else:
                 enemy.spriteCollision = False 
+                
         #Loop to check if player bullets have hit a target        
         for enemy in enemy_group:
             for bullet in bullets:
@@ -972,7 +979,8 @@ def drawGame():
                     bullet.x += (bullet.velocity + screen_scroll)
                 else:
                     bullets.pop(bullets.index(bullet))
-        #Loop to check if enemy bullets have hit a target                   
+                    
+        #Loop to check if enemy bullets have hit the player                  
             for bullet in enemy.ebullets:
                 if bullet.y - bullet.radius < player.rect[1] + player.rect[3] and bullet.y + bullet.radius > player.rect[1]:
                     if bullet.x + bullet.radius > player.rect[0] and bullet.x - bullet.radius < player.rect[0] + player.rect[2]:
@@ -985,53 +993,55 @@ def drawGame():
                     
                 else:
                     enemy.ebullets.pop(enemy.ebullets.index(bullet))
+                    
+    #If there are no enemies, bullets can still be fired
     else:
         for bullet in bullets:
             if bullet.x < SCREEN_WIDTH and bullet.x > 0 and bullet.y > 0 and bullet.y < SCREEN_HEIGHT:
                 bullet.x += bullet.velocity + screen_scroll        
             else:
                 bullets.pop(bullets.index(bullet))
-                            
+                
+    #Draw all game obstacles on screen                      
     obstacles_group.draw(screen)
     for obs in obstacles_group:
         obs.update()
-                
+    
+    #Draw player on screen              
     player.update(pressed_keys, pressed_mouse)
     player.draw(screen)
     player.UI(screen)
-        
+    
+    #Draw all game obstacles 2 on screen     
     obstacles_group2.draw(screen)
     for obs in obstacles_group2:
         obs.update()
     
     
    
-        
+    #Draw enemies if they are not colliding with player     
     if len(enemy_group) > 0:             
         if enemy.spriteCollision == False:
             for enemies in enemy_group:   
                 enemies.update(screen)
                 enemies.move() 
-                
+    
+    #Draw all game collectibles on screen             
     collectibles_group.update()
     collectibles_group.draw(screen)
     
     for items in collectibles_group:
         items.update()
     
+    #Draw all player bullets on screen
     for bullet in bullets:
         bullet.draw(screen)
         
+    #Draw all enemy bullets on screen     
     for enemy in enemy_group:
         for ebullet in enemy.ebullets:
             ebullet.draw(screen)
-        
-    if len(enemy_group) > 0: 
-        for bullet in enemy.ebullets:
-            bullet.draw(screen)
-    
-    
-        
+
 
 bulletCount = 0
 
@@ -1060,7 +1070,9 @@ while run:
         pygame.draw.rect(screen, (255,255,255), gameMenubg)
         screen.blit(pygame.image.load('sprites\maintitle.png'), (190, 130))
         menu_text = font.render("Press ENTER to start", True, (20, 20, 20))
+        highscore_text = font.render(f"HIGHSCORE: {highScore}", True, (242, 80, 53))
         screen.blit(menu_text, (260, 300))
+        screen.blit(highscore_text, (300, 350))
         pressed_keys = pygame.key.get_pressed()
         if pressed_keys[K_RETURN]:
             player = Player(200, 450, 64, 64)
@@ -1095,28 +1107,41 @@ while run:
     if gameRun == True:
         
         drawGame()
+        
+        if player.current_health <= 0 and player.current_lives == 0: 
+                player.die()   
+                 
+            
+        if len(enemy_group) == 0: 
+            if currentLevel.runLevel == 2:
+                finish_text = font.render("CONGRATULATIONS!", True, (237, 237, 237))
+                finish_text2 = font.render("YOU FINISHED THE GAME!", True, (237, 237, 237))
+                finish_text3 = font.render("Press BACKSPACE to return to menu.", True, (237, 237, 237))
+                pygame.draw.rect(screen, (25,38,240), (150, 280, 475, 140))
+                screen.blit(finish_text, (260, SCREEN_HEIGHT/2))
+                screen.blit(finish_text2, (230, SCREEN_HEIGHT/2 + 35))
+                screen.blit(finish_text3, (170, SCREEN_HEIGHT/2 + 70))
+                if pressed_keys[K_BACKSPACE]:
+                    menu = True
+                    gameRun = False
+                
+            else:    
+                nextLevelText = obstacle('nextLevelText', SCREEN_WIDTH/2, SCREEN_HEIGHT/2)
+                if not (finishLevelText):
+                    obstacles_group.add(nextLevelText)
+                    finishLevelText = True
 
-        if player.current_lives <= 0:
-            player.die()
-            
-            
-        if len(enemy_group) == 0:  
-            nextLevelText = obstacle('nextLevelText', SCREEN_WIDTH/2, SCREEN_HEIGHT/2)
-            if not (finishLevelText):
-                obstacles_group.add(nextLevelText)
-                finishLevelText = True
-            
-
-            
-            if pressed_keys[K_RETURN] and player.playerDead != True:
-                enemy_group.empty()
-                collectibles_group.empty()
-                obstacles_group.empty()
-                obstacles_group2.empty()
-                currentLevel.runLevel += 1
-                currentLevel.setLevel = currentLevel.levelList[currentLevel.runLevel]
-                currentLevel.setLevel()
-                finishLevelText = False
+                
+                if pressed_keys[K_RETURN] and player.playerDead != True:
+                    enemy_group.empty()
+                    collectibles_group.empty()
+                    obstacles_group.empty()
+                    obstacles_group2.empty()
+                    currentLevel.runLevel += 1
+                    currentLevel.setLevel = currentLevel.levelList[currentLevel.runLevel]
+                    currentLevel.setLevel()
+                    finishLevelText = False
+                    print("test")
         pygame.display.update()
         
         # Ensure we maintain a 30 frames per second rate
