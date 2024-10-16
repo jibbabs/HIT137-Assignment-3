@@ -1,23 +1,16 @@
-#The game should include the following, but not limited to:
-#• Player class (movements, speed, jump, health, lives) - Methods
-#• Projectile Class (movements, speed, damage) – Methods
-#• Enemy Class (……………….) – Methods
-#• Collectible Class (health boost, extra life, etc.,)
-#• Level Design (3 Levels), Add boss enemy at the end.
-#• A Scoring system based on enemies defeated, and collectibles
-#collected, health bar for players, and enemies.
-#• Implement a game over screen with the option to restart.
-
+#Group Name: CAS003
+#Group Members:
+#[Alex Tarrant] - [S255441]
+#[Jason Yun] - [S364369]
 
 #Sprites courtesy of CRAFTPIX.NET
-# Import the pygame module
+# Import the pygame module and math
 import pygame
 import math
 from pygame.locals import *
-
-
+print("WELCOME TO JOHN JONE: CITY DEFENDER")
+#Initialize pygame and mixer for soundtrack
 pygame.init()
-
 pygame.mixer.init()  
 
 #Soundtrack by Evgeny Bardyuzha from Pixabay
@@ -29,18 +22,22 @@ pygame.mixer.music.set_volume(0.2)
 #Sound Effect by mrfriends from Pixabay
 gunshot = pygame.mixer.Sound("pistol-shot-233473.mp3")
 gunshot.set_volume(0.2)
+
 # Define constants for the screen width and height
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-x = 0
-y = SCREEN_HEIGHT - 25
+
+#Define starting position for player on screen
 startPos = (110,480)
+
 # Create the screen object
-# The size is determined by the constant SCREEN_WIDTH and SCREEN_HEIGHT
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("JOHN JONE: CITY DEFENDER")
+
+#Create the highscore variable
 highScore = 0
 
+#Define game constants
 font = pygame.font.Font(None, 36)
 SCROLL_THRESH = 100
 screen_scroll = 0
@@ -50,19 +47,16 @@ bg_scroll = 0
 global finishLevelText
 finishLevelText = False
 
-
-x = 20
-y = 450
-
+#Create lists for several game objects
 speed = 60
 bullets = []
 enemyBullets = []
 enemies = []
 
+#Create game clock
 clock = pygame.time.Clock()
 
-# Define the Player object extending pygame.sprite.Sprite
-# Instead of a surface, we use an image for a better looking sprite
+# Define the Player object 
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y , width, height, ):
         super(Player, self).__init__()
@@ -96,7 +90,7 @@ class Player(pygame.sprite.Sprite):
         self.shotTimer = 0
         self.shotSpeed = 25
         self.bulletSize = 3
-        self.bulletDmg = 2
+        self.bulletDmg = 3
         self.playerDead = False
         self.bar_width = 200
         self.bar_height = 20
@@ -179,12 +173,12 @@ class Player(pygame.sprite.Sprite):
         
              
                 
-        #Update scroll based on the player position
+        #Determine amount of screen scroll based on the player position
         if self.x > SCROLL_THRESH:
             self.levelstart = False
             global screen_scroll
             screen_scroll = 0
-        #print(screen_scroll)
+       
         if self.levelstart == False:
             
             if self.x > SCREEN_WIDTH - SCROLL_THRESH - self.velocity - 400:
@@ -195,13 +189,10 @@ class Player(pygame.sprite.Sprite):
             if self.x <= SCROLL_THRESH + self.velocity:
                 self.x += self.velocity
                 screen_scroll = self.velocity
-               
-         
-            #print(screen_scroll)
-            #print(player.x)
         
             return screen_scroll
-        
+   
+    #Draw player on screen  and animation 
     def draw(self, screen):
         if self.walkCount + 1 >= 15:
             self.walkCount = 0
@@ -216,9 +207,9 @@ class Player(pygame.sprite.Sprite):
                 self.shooting = False
             
         elif not(self.standing):
-            if self.left:  # If we are facing left
+            if self.left:  
                 screen.blit(self.walkLeft[(self.walkCount//2)], (self.x,self.y))
-                self.walkCount += 1                           # image is shown 3 times every animation
+                self.walkCount += 1                          
             elif self.right:
                 screen.blit(self.walkRight[self.walkCount//2], (self.x,self.y))
                 self.walkCount += 1
@@ -227,31 +218,33 @@ class Player(pygame.sprite.Sprite):
                 screen.blit(self.walkRight[0], (self.x, self.y))
             else:
                 screen.blit(self.walkRight[0], (self.x, self.y))
-                
+    
+    #User Interface           
     def UI (self, screen):
-        # Draw health bar background
+        #Draw health bar background
         pygame.draw.rect(screen, (100,0,0), (50, 50, self.bar_width, self.bar_height))
 
-        # Calculate the width of the current health
+        #Calculate the width of the current health
         health_ratio = self.current_health / self.max_health
         current_bar_width = self.bar_width * health_ratio
         
-        # Draw current health
+        #Draw current health
         pygame.draw.rect(screen, (0,128,0), (50, 50, current_bar_width, self.bar_height))
         
 
-        # Display lives
+        #Display lives
         lives_text = font.render(f"LIVES: {self.current_lives}", True, (0, 0, 0))
         screen.blit(lives_text, (50, 80))      
         
-        # Display score
+        #Display score
         score_text = font.render(f"SCORE: {self.score}", True, (0, 0, 0))
         screen.blit(score_text, (SCREEN_WIDTH - 200, 50))   
         
-        # Display gun level
+        #Display gun level
         score_text = font.render(f"GUN LVL: {self.gunLvl}", True, (0, 0, 0))
         screen.blit(score_text, (SCREEN_WIDTH - 200, 80))   
-        
+    
+    #Function for player damage 
     def hit(self):
         if self.current_health > 0:
             self.current_health -= 5
@@ -261,11 +254,8 @@ class Player(pygame.sprite.Sprite):
             self.x, self.y = startPos
             self.current_health = self.max_health
                 
-          
-                
-          
-    
-            
+
+    #Function for if player dies    
     def die(self):
         global menu
         global gameRun
@@ -288,7 +278,7 @@ class Player(pygame.sprite.Sprite):
             player.current_lives = player.max_lives
             restart = True
             
-
+#Class for game projectiles, such as bullets
 class projectile (object):
     def __init__(self, x, y, radius, colour, facing, speed):
         self.x = x
@@ -300,7 +290,8 @@ class projectile (object):
     
     def draw (self, screen):
         pygame.draw.circle (screen, self.colour, (self.x, self.y), self.radius)
-
+        
+#Class for game collectibles, such as health and upgrades
 class collectible (pygame.sprite.Sprite):
     medpack_img = pygame.image.load('sprites\medpack.png').convert_alpha()
     life_img = pygame.image.load('sprites\life.png').convert_alpha()
@@ -312,8 +303,6 @@ class collectible (pygame.sprite.Sprite):
         (237,30,187), #Purple
         (237,2,6), #Red
         ]
-    
-    
     
     item_boxes = {
         'Medpack': medpack_img ,
@@ -330,12 +319,11 @@ class collectible (pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.midtop = (x, y)
         #pygame.draw.rect(screen, (0,100,0),self.rect,1)
-        
+       
+    #Update collectible position on screen when screen moves    
     def update(self):
         
         #Move with level
-        
-        
         if currentLevel.bgX < 0 and currentLevel.bgX > -currentLevel.current_Level_Width:
             if player.x > SCROLL_THRESH + player.velocity:
                 self.rect.x += screen_scroll - (screen_scroll//2)
@@ -362,11 +350,7 @@ class collectible (pygame.sprite.Sprite):
                 
             self.kill()        
                 
-        if self.item_type == 'Life':
-            if player.current_lives < player.max_lives:
-                player.current_lives += 1
-            self.kill()
-      
+#Class for game obstacles in the environment
 class obstacle (pygame.sprite.Sprite):
     burntCar = pygame.image.load('sprites\car1.png').convert_alpha()
     rustyCar = pygame.image.load('sprites\car2.png').convert_alpha()
@@ -415,7 +399,6 @@ class obstacle (pygame.sprite.Sprite):
         self.behind = True
         
     def update(self):
-      
         
         #Obstacles move with level
         if currentLevel.bgX < 0 and currentLevel.bgX > -currentLevel.current_Level_Width:
@@ -423,11 +406,9 @@ class obstacle (pygame.sprite.Sprite):
                 self.rect.x += screen_scroll/2
                 self.x += screen_scroll /2
          
-                    
+#Class for game enemies with multiple enemy types                   
 class enemy(pygame.sprite.Sprite):
-    
     def __init__(self,enemy_type, x, y, xadj, yadj, width, height, start, end):
-        
         pygame.sprite.Sprite.__init__(self)
         self.alive = True
         self.x = x
@@ -606,8 +587,6 @@ class enemy(pygame.sprite.Sprite):
          
             
     def move(self):
-        
-        
          #Enemy movement to follow player if player in range
         if self.shotTimer == self.shotPause:
             if player.x < self.x + self.range and player.x > self.x - self.range:  
@@ -636,16 +615,16 @@ class enemy(pygame.sprite.Sprite):
                 if player.x < self.x:
                     self.followL = True
                     self.followR = False
-                    #print("Following Left")
+                    
                 if player.x > self.x:
                     self.followR = True
                     self.followL = False
-                    #print("Following Right")
+                   
                 
                 if currentLevel.bgX > -currentLevel.current_Level_Width and currentLevel.bgX < 0:
                     self.x += screen_scroll
                 
-                #print(self.followR)
+                
                 if self.walkCount >= 18:
                     self.walkCount = 0
                 
@@ -663,7 +642,7 @@ class enemy(pygame.sprite.Sprite):
                 
                 #Enemy movement   
                 if self.velocity > 0:
-                    #print("test")
+                    
                     if self.x + self.velocity < self.path[1]:
                         self.x += self.velocity
                         
@@ -691,14 +670,13 @@ class enemy(pygame.sprite.Sprite):
                 self.followL = False
                 pass
                 
-                #Collision detection with player
                 
         else:
             self.x += screen_scroll
             
         self.hitbox = (self.x + self.xadj,self.y + self.yadj,self.width,self.height)
-        print(self.timer)
         
+        #Collision detection with player  
         if self.hitbox[1] - self.height < player.rect[1] + player.rect[3] and self.hitbox[1] + self.height > player.rect[1]:
             if self.hitbox[0] + self.width > player.rect[0] and self.hitbox[0] - self.width < player.rect[0] + player.rect[2]:
                 self.timer -= 1
@@ -708,10 +686,11 @@ class enemy(pygame.sprite.Sprite):
                     player.hit()
                     self.timer = self.timerMax
         if self.walkCount >= 18:
-                self.walkCount = 0                
-
+                self.walkCount = 0  
+                              
+    #Enemy damage from bullet
     def hit(self):
-        print("Hit!")
+        
         self.currentHealth -= player.bulletDmg
  
         if self.currentHealth  <= 0:
@@ -726,33 +705,24 @@ class enemy(pygame.sprite.Sprite):
             if self.enemy_type == 'enemyBoss':
                 player.score += 1000
             self.kill()
-            
-            
         pass
         
-
-
-# Set the base volume for all sounds
-#move_up_sound.set_volume(0.5)
-#move_down_sound.set_volume(0.5)
-#collision_sound.set_volume(0.5)
-
-
+#Define groups for all game objects
 enemy_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
 collectibles_group = pygame.sprite.Group()
 obstacles_group = pygame.sprite.Group()
 obstacles_group2 = pygame.sprite.Group()
 
+#Class which defines which level is loaded
 class levelLoad():  
     def __init__(self, level):
 
         self.levelList = [self.levelOne, self.levelTwo, self.levelThree]
         self.runLevel = level
         self.setLevel = self.levelList[self.runLevel]  
-               
-        
-        
+    
+    #Level 1   
     def levelOne(self):
         self.bg = pygame.image.load('sprites\level1BG.png')
         self.ground = pygame.image.load('sprites\lvl1Road.png')
@@ -806,7 +776,7 @@ class levelLoad():
             
         self.current_Level_Width = 1800
         
-    
+    #Level 2
     def levelTwo(self):
         self.bg = pygame.image.load('sprites\level2BG.png')
         self.ground = pygame.image.load('sprites\lvl1Road.png')
@@ -840,8 +810,8 @@ class levelLoad():
         robotEnemy4 = enemy('enemyA', 1900, SCREEN_HEIGHT - 140, 0, 10, 30, 40, 1240, 2000)  
         robotEnemy5 = enemy('enemyB', 2050, SCREEN_HEIGHT - 100, 0, 10, 30, 40, 1360, 2000)  
         robotEnemy6 = enemy('enemyA', 1800, SCREEN_HEIGHT - 170, 0, 10, 30, 40, 1120, 2000)  
-        robotEnemy7 = enemy('enemyA', 2100, SCREEN_HEIGHT - 100, 0, 10, 30, 40, 2100, 2200)  
-        robotEnemy8 = enemy('enemyA', 2140, SCREEN_HEIGHT - 170, 0, 10, 30, 40, 2120, 2240)  
+        robotEnemy7 = enemy('enemyA', 1980, SCREEN_HEIGHT - 100, 0, 10, 30, 40, 1900, 2000)  
+        robotEnemy8 = enemy('enemyA', 1990, SCREEN_HEIGHT - 170, 0, 10, 30, 40, 1950, 2000)  
         
         self.enemyList = [robotEnemy1,robotEnemy2,robotEnemy3, robotEnemy4,robotEnemy5,robotEnemy6, robotEnemy7, robotEnemy8]  
         
@@ -853,7 +823,8 @@ class levelLoad():
             obstacles_group.add(objects)
   
         self.current_Level_Width = 1800
-         
+    
+    #Level 3 with boss    
     def levelThree(self):  
         self.bg = pygame.image.load('sprites\level3BG.png')
         self.ground = pygame.image.load('sprites\lvl1Road.png')
@@ -899,7 +870,7 @@ class levelLoad():
         
         self.current_Level_Width = 1800
          
-    
+    #Update level background based on screen scroll 
     def update(self, screen):
         
         if self.bgX <= 0 and self.bgX >= -self.current_Level_Width and player.x >= SCROLL_THRESH + player.velocity:
@@ -936,14 +907,13 @@ class levelLoad():
     pressed_mouse = pygame.mouse.get_pressed()
     cursor_pos = pygame.mouse.get_pos()    
 
+#Set current level to Level 1 and load level
 currentLevel = levelLoad(0)  
 currentLevel.setLevel()  
 
-
-
+#Draws all objects and updates screen
 def drawGame():
-    
-    
+
     currentLevel.update(screen)
     obstacles_group.draw(screen)
     for obs in obstacles_group:
@@ -1016,9 +986,7 @@ def drawGame():
     obstacles_group2.draw(screen)
     for obs in obstacles_group2:
         obs.update()
-    
-    
-   
+
     #Draw enemies if they are not colliding with player     
     if len(enemy_group) > 0:             
         if enemy.spriteCollision == False:
@@ -1043,8 +1011,10 @@ def drawGame():
             ebullet.draw(screen)
 
 
+#Define bullet count for player
 bulletCount = 0
 
+#Define global variables for game running and menu
 global menu
 global gameRun  
 restartTimer = 10 
@@ -1053,17 +1023,19 @@ gameRun = False
 restart = False
 
 run = True
-#main loop
+#Main game loop
 while run:
     pressed_keys = pygame.key.get_pressed()
     pressed_mouse = pygame.mouse.get_pressed()
     
+    #If ESC exit pygame
     for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
     if pressed_keys[K_ESCAPE]:
         run = False
-    
+        
+    #Main menu
     if menu == True:
         gameMenubg = (0,0, SCREEN_WIDTH, SCREEN_HEIGHT)
         
@@ -1083,6 +1055,7 @@ while run:
             player.playerDead = False
             
             currentLevel.runLevel = 0
+            currentLevel.setLevel = currentLevel.levelList[0]
             currentLevel.setLevel() 
             
             currentLevel.bgX = 0
@@ -1090,6 +1063,7 @@ while run:
             gameRun = True
         pygame.display.update()
     
+    #Restart level 
     if restart == True:
             
         enemy_group.empty()
@@ -1098,20 +1072,21 @@ while run:
         obstacles_group2.empty()
         
         currentLevel.runLevel = 0
+        currentLevel.setLevel = currentLevel.levelList[0]
         currentLevel.setLevel() 
         
         player.playerDead = False
         player = Player(200, 500, 64, 64)
         restart = False
 
+    #Main running code for game
     if gameRun == True:
         
         drawGame()
-        
         if player.current_health <= 0 and player.current_lives == 0: 
                 player.die()   
                  
-            
+        #IF all enemies dead, proceed to next level           
         if len(enemy_group) == 0: 
             if currentLevel.runLevel == 2:
                 finish_text = font.render("CONGRATULATIONS!", True, (237, 237, 237))
@@ -1124,14 +1099,14 @@ while run:
                 if pressed_keys[K_BACKSPACE]:
                     menu = True
                     gameRun = False
-                
+                    
             else:    
                 nextLevelText = obstacle('nextLevelText', SCREEN_WIDTH/2, SCREEN_HEIGHT/2)
                 if not (finishLevelText):
                     obstacles_group.add(nextLevelText)
                     finishLevelText = True
 
-                
+                #Load next level
                 if pressed_keys[K_RETURN] and player.playerDead != True:
                     enemy_group.empty()
                     collectibles_group.empty()
@@ -1141,15 +1116,12 @@ while run:
                     currentLevel.setLevel = currentLevel.levelList[currentLevel.runLevel]
                     currentLevel.setLevel()
                     finishLevelText = False
-                    print("test")
+                    
         pygame.display.update()
         
-        # Ensure we maintain a 30 frames per second rate
+        #Ensure we maintain a 30 frames per second rate
         clock.tick(30)
 
-    # At this point, we're done, so we can stop and quit the mixer
-    #pygame.mixer.music.stop()
-    #pygame.mixer.quit()
 
 
 
