@@ -96,7 +96,7 @@ class Player(pygame.sprite.Sprite):
         self.shotTimer = 0
         self.shotSpeed = 25
         self.bulletSize = 3
-        self.bulletDmg = 2
+        self.bulletDmg = 3
         self.playerDead = False
         self.bar_width = 200
         self.bar_height = 20
@@ -697,7 +697,7 @@ class enemy(pygame.sprite.Sprite):
             self.x += screen_scroll
             
         self.hitbox = (self.x + self.xadj,self.y + self.yadj,self.width,self.height)
-        print(self.timer)
+        
         
         if self.hitbox[1] - self.height < player.rect[1] + player.rect[3] and self.hitbox[1] + self.height > player.rect[1]:
             if self.hitbox[0] + self.width > player.rect[0] and self.hitbox[0] - self.width < player.rect[0] + player.rect[2]:
@@ -711,7 +711,7 @@ class enemy(pygame.sprite.Sprite):
                 self.walkCount = 0                
 
     def hit(self):
-        print("Hit!")
+        
         self.currentHealth -= player.bulletDmg
  
         if self.currentHealth  <= 0:
@@ -840,8 +840,8 @@ class levelLoad():
         robotEnemy4 = enemy('enemyA', 1900, SCREEN_HEIGHT - 140, 0, 10, 30, 40, 1240, 2000)  
         robotEnemy5 = enemy('enemyB', 2050, SCREEN_HEIGHT - 100, 0, 10, 30, 40, 1360, 2000)  
         robotEnemy6 = enemy('enemyA', 1800, SCREEN_HEIGHT - 170, 0, 10, 30, 40, 1120, 2000)  
-        robotEnemy7 = enemy('enemyA', 2100, SCREEN_HEIGHT - 100, 0, 10, 30, 40, 2100, 2200)  
-        robotEnemy8 = enemy('enemyA', 2140, SCREEN_HEIGHT - 170, 0, 10, 30, 40, 2120, 2240)  
+        robotEnemy7 = enemy('enemyA', 1980, SCREEN_HEIGHT - 100, 0, 10, 30, 40, 1900, 2000)  
+        robotEnemy8 = enemy('enemyA', 1990, SCREEN_HEIGHT - 170, 0, 10, 30, 40, 1950, 2000)  
         
         self.enemyList = [robotEnemy1,robotEnemy2,robotEnemy3, robotEnemy4,robotEnemy5,robotEnemy6, robotEnemy7, robotEnemy8]  
         
@@ -1083,6 +1083,7 @@ while run:
             player.playerDead = False
             
             currentLevel.runLevel = 0
+            currentLevel.setLevel = currentLevel.levelList[0]
             currentLevel.setLevel() 
             
             currentLevel.bgX = 0
@@ -1098,6 +1099,7 @@ while run:
         obstacles_group2.empty()
         
         currentLevel.runLevel = 0
+        currentLevel.setLevel = currentLevel.levelList[0]
         currentLevel.setLevel() 
         
         player.playerDead = False
@@ -1107,7 +1109,7 @@ while run:
     if gameRun == True:
         
         drawGame()
-        
+        print(currentLevel.runLevel)
         if player.current_health <= 0 and player.current_lives == 0: 
                 player.die()   
                  
@@ -1124,7 +1126,7 @@ while run:
                 if pressed_keys[K_BACKSPACE]:
                     menu = True
                     gameRun = False
-                
+                    
             else:    
                 nextLevelText = obstacle('nextLevelText', SCREEN_WIDTH/2, SCREEN_HEIGHT/2)
                 if not (finishLevelText):
@@ -1141,7 +1143,7 @@ while run:
                     currentLevel.setLevel = currentLevel.levelList[currentLevel.runLevel]
                     currentLevel.setLevel()
                     finishLevelText = False
-                    print("test")
+                    
         pygame.display.update()
         
         # Ensure we maintain a 30 frames per second rate
