@@ -76,3 +76,37 @@ class FaceDetectionApp:
         self.process_desc.pack()
 
         self.image_path = ""
+
+    def upload_image(self):
+        """Upload an image and store the path."""
+        self.image_path = filedialog.askopenfilename()
+        if not self.image_path:
+            messagebox.showerror("Error", "Please select an image.")
+        else:
+            messagebox.showinfo("Info", "Image uploaded successfully!")
+
+    def detect_faces(self):
+        """Detect faces in the uploaded image."""
+        if not self.image_path:
+            messagebox.showerror("Error", "Please upload an image first.")
+            return
+        
+        face_detector = FaceDetector(self.image_path)
+        output_path = face_detector.process()
+
+        self.display_image(output_path)
+
+    def display_image(self, output_path):
+        """Display the processed image with detected faces."""
+        image = Image.open(output_path)
+        image = image.resize((400, 400))
+        photo = ImageTk.PhotoImage(image)
+
+        self.result_label = tk.Label(self.master, image=photo)
+        self.result_label.image = photo
+        self.result_label.pack(pady=(20, 0))
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = FaceDetectionApp(root)
+    root.mainloop()
