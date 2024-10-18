@@ -1,3 +1,8 @@
+#Group Name: CAS003
+#Group Members:
+#[Alex Tarrant] - [S255441]
+#[Jason Yun] - [S364369]
+
 import cv2
 import tkinter as tk
 from tkinter import filedialog, messagebox
